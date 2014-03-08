@@ -148,7 +148,7 @@ class TCPClient {
 			String modifiedSentence = inFromServer.readLine(); 
 			while(modifiedSentence != null){
 				searchForImages(modifiedSentence);
-				System.out.println("FROM SERVER: " + modifiedSentence);
+				System.out.println(modifiedSentence);
 				modifiedSentence = inFromServer.readLine();
 			}
 			System.out.println("Done with receiving code lines.");
