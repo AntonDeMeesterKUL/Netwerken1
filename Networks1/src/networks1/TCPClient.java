@@ -63,8 +63,8 @@ class TCPClient {
 			sentence = inFromUser.readLine();
 		}
 	} 
-	// GET http://www.google.com/index.html 80
-	// GET http://www.example.com/index.html 80 HTTP/1.1
+	// GET www.google.com/index.html 80
+	// GET www.example.com/index.html 80 HTTP/1.1
 	private Socket clientSocket;
 	private PrintWriter outToServer;
 	private BufferedReader inFromServer;
@@ -86,20 +86,22 @@ class TCPClient {
 	
 	private static void parse(String sentence) throws Exception{
 		String[] commands = sentence.split("[ ]+");
-		if(!(commands.length == 4 || commands.length == 3))
-			throw new IllegalArgumentException("FUCK YOU");
-		String command = commands[0];
-		URL url = new URL(commands[1]);
-		int port = Integer.parseInt(commands[2]);
-		String version = "";
-		try{
-			version = commands[3];
-		} catch (Exception e){}
-		
-		TCPClient client = new TCPClient(url.getHost(), port);
-		client.sendMessage(command, url, version, port);
-		
-		client.closeConnection();
+		if(!(commands.length == 4))
+			System.err.println("Please enter a correct statement. \nThe correct syntax is: HTTPCommand URI Port HTTPversion");
+		else{
+			String command = commands[0];
+			URL url = new URL("http://" + commands[1]);
+			int port = Integer.parseInt(commands[2]);
+			String version = "";
+			try{
+				version = commands[3];
+			} catch (Exception e){}
+			
+			TCPClient client = new TCPClient(url.getHost(), port);
+			client.sendMessage(command, url, version, port);
+			if(version.equals("HTTP/1.0"))
+				client.closeConnection();
+		}
 	}
 	
 	private void closeConnection(){
@@ -116,7 +118,8 @@ class TCPClient {
 		try{
 			String sentence = command + " " + url.getFile() + " " + version;
 			if(version.equals("HTTP/1.1"))
-				sentence += "\nHost: "+ url.getHost() + ":" + port +"\n";
+				sentence += "\nHost: "+ url.getHost() + ":" + port;
+			sentence += "\n";
 			System.out.println("Sending: " +sentence);
 			outToServer.println(sentence);
 			
