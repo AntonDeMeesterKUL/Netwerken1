@@ -1,7 +1,12 @@
 package networks1;
 
-import java.io.*; 
-import java.net.*; 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.URL;
+import java.util.LinkedList;
 
 
 class TCPClient { 
@@ -65,43 +70,52 @@ class TCPClient {
 			sentence = inFromUser.readLine();
 		}
 	} 
-	// GET http://www.google.com/index.html 80
-	// GET http://www.example.com/index.html 80 HTTP/1.1
+	
+	private static void parse(String sentence) throws Exception{
+		String[] commands = sentence.split("[ ]+");
+		if(!(commands.length == 4))
+			System.err.println("Please enter a correct statement. \nThe correct syntax is: HTTPCommand URI Port HTTPversion");
+		else{
+			String command = commands[0];
+			URL url = new URL("http://" + commands[1]);
+			int port = Integer.parseInt(commands[2]);
+			String version = commands[3];			
+			TCPClient client = new TCPClient(command, url, port, version);
+			client.sendMessage(command, url, version, port);
+			client.receiveMessage();
+			if(version.equals("HTTP/1.0"))
+				client.closeConnection();
+		}
+	}
+	
+	// GET www.google.com/index.html 80
+	// GET www.example.com/index.html 80 HTTP/1.1
+	// GET www.travian.nl/ 80 HTTP/1.1
 	private Socket clientSocket;
 	private PrintWriter outToServer;
 	private BufferedReader inFromServer;
+	private String command, version;
+	private URL url;
+	private int port;
 	
-	public TCPClient(String host, int port) throws Exception{
+	public TCPClient(String command, URL url, int port, String version) throws Exception{
 		
-		if(host == null || host =="" || port < 0)
+		if(url == null || url.getHost() =="" || port < 0)
 			throw new IllegalArgumentException("Please specify a host and a port.");
+		this.command = command;
+		this.url = url;
+		this.port = port;
+		this.version = version;
+		imagesNeeded = new LinkedList<String>();
 		try {
-			clientSocket = new Socket(host, port);
-			System.out.println("Connected to: " + host + " with port: " + port + ".");
+			clientSocket = new Socket(url.getHost(), port);
+			System.out.println("Connected to: " + url.getHost() + " with port: " + port + ".");
 			outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 			inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		}
 		catch(Exception e){
 			e.printStackTrace();
 		}
-	}
-	
-	private static void parse(String sentence) throws Exception{
-		String[] commands = sentence.split("[ ]+");
-		if(!(commands.length == 4 || commands.length == 3))
-			throw new IllegalArgumentException("FUCK YOU");
-		String command = commands[0];
-		URL url = new URL(commands[1]);
-		int port = Integer.parseInt(commands[2]);
-		String version = "";
-		try{
-			version = commands[3];
-		} catch (Exception e){}
-		
-		TCPClient client = new TCPClient(url.getHost(), port);
-		client.sendMessage(command, url, version, port);
-		
-		client.closeConnection();
 	}
 	
 	private void closeConnection(){
@@ -118,20 +132,68 @@ class TCPClient {
 		try{
 			String sentence = command + " " + url.getFile() + " " + version;
 			if(version.equals("HTTP/1.1"))
-				sentence += "\nHost: "+ url.getHost() + ":" + port +"\n";
+				sentence += "\nHost: "+ url.getHost() + ":" + port;
+			sentence += "\n";
 			System.out.println("Sending: " +sentence);
 			outToServer.println(sentence);
 			
 			outToServer.flush();
 			System.out.println("Flushed the writer.");
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	public void receiveMessage(){
+		try{
 			String modifiedSentence = inFromServer.readLine(); 
 			while(modifiedSentence != null){
+				searchForImages(modifiedSentence);
+				System.out.println(modifiedSentence);
+				modifiedSentence = inFromServer.readLine();
+			}
+			System.out.println("Done with receiving code lines.");
+			if(version.equals("HTTP/1.0")){					
+				for(String imageNeeded: imagesNeeded)
+					retrieveImage(imageNeeded);
+			}
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	private LinkedList<String> imagesNeeded;
+	
+	private void searchForImages(String sentence){
+		if(sentence.contains("<img")){
+			int src = sentence.indexOf("src=");
+			int begin = sentence.indexOf('"', src) + 1;
+			int end = sentence.indexOf('"', begin);
+			if(version.equals("HTTP/1.0"))
+				imagesNeeded.add(sentence.substring(begin, end));
+			else if(version.equals("HTTP/1.1")){
+				ImageGetter ig = new ImageGetter(clientSocket, url, port, sentence.substring(begin, end));
+				(new Thread(ig)).start();
+			}
+		}
+	}
+	
+	private void retrieveImage(String imageNeeded){
+		outToServer.println("GET " + url.getFile() + imageNeeded + " " + port + " " + version);
+		System.out.println(url.getFile() + imageNeeded);
+		outToServer.println("Host: " + url.getHost() + ":" + port);
+		outToServer.println();;
+		try{
+			String modifiedSentence = inFromServer.readLine(); 
+			while(modifiedSentence != null){
+				searchForImages(modifiedSentence);
 				System.out.println("FROM SERVER: " + modifiedSentence);
 				modifiedSentence = inFromServer.readLine();
 			}
-			System.out.println("Done with receiving lines.");
-		}
-		catch(Exception e){
+			System.out.println("Done with receiving image.");
+		} catch(Exception e){
 			e.printStackTrace();
 		}
 	}
