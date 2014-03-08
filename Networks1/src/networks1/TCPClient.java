@@ -6,6 +6,8 @@ import java.net.*;
 
 class TCPClient { 
 	
+	//#DIT IS MARTIN FROM GITHUB
+	
 //	public static void main(String[] args) {
 //	    try {
 //	      // Check the arguments
