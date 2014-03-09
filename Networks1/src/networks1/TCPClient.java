@@ -228,8 +228,14 @@ class TCPClient {
 	 * @param imageNeeded
 	 */
 	private void retrieveImage(String imageNeeded){
-		outToServer.println("GET " + url.getFile() + imageNeeded + " " + port + " " + version);
-		System.out.println(url.getFile() + imageNeeded);
+		if(imageNeeded.toLowerCase().startsWith("http://") || imageNeeded.toLowerCase().startsWith("www.")){ //full address
+			outToServer.println("GET " + imageNeeded + " " + port + " " + version);
+			System.out.println("GET " + imageNeeded + " " + port + " " + version);
+		}
+		else{ //relative address
+			outToServer.println("GET " + url.getHost() + imageNeeded + " " + port + " " + version);
+			System.out.println("GET " + imageNeeded + " " + port + " " + version);
+		}
 		outToServer.println("Host: " + url.getHost() + ":" + port);
 		outToServer.println();
 		try{
