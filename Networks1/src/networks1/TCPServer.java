@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.LinkedList;
 
 
@@ -54,12 +55,18 @@ class TCPServer implements Runnable {
 					System.out.println(clientSentence);
 					if(clientSentence != null)
 						parse(clientSentence);
-				} catch(Exception e){
-					e.printStackTrace();
-					System.err.println("Error in TCPServer run");
+				} 
+				catch(SocketException e){
+					terminated = true;
+					break;
 				}
+				catch(Exception e){
+					e.printStackTrace();
+				}
+				
 			}
 		}
+		System.out.println("Shutting down ThreadHandler.");
 	}
 	
 	private boolean lastBreak = false;
@@ -111,7 +118,8 @@ class TCPServer implements Runnable {
 					version = 0;
 				else 
 					version = 1;
-			}
+			} else
+				version = 1;
 			lastCommand = COMMAND.GET;
 			String toPrint = "";
 			if(commands[1].equals("/forbiddenPage"))
@@ -155,15 +163,17 @@ class TCPServer implements Runnable {
 			if(commands[0].equalsIgnoreCase("Host:") && commands[1].equalsIgnoreCase("localhost:6789"))
 				sendBack(returnString);
 		}
-		else if(firstCommandCorrect)
+		else if(firstCommandCorrect && version == 0)
 			sendBack(returnString);
 		lastCommand = COMMAND.NONE;
+		firstCommandCorrect = false;
 	}
 	
 	private void sendBack(String toPrint){
 		if(!returnString.equals("")){
 			try{
 				outToClient.writeBytes(returnString);
+				System.out.println(returnString);
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");
 			}
