@@ -88,14 +88,23 @@ class TCPClient {
 		if(!(commands.length == 4))
 			System.err.println("Please enter a correct statement. \nThe correct syntax is: HTTPCommand URI Port HTTPversion");
 		else{
+			//1- command
 			String command = commands[0];
+			//2- url
 			URL url;
-			if(commands[1].toLowerCase().contains("http://"))
+			if(commands[1].toLowerCase().startsWith("http://"))
 				url = new URL(commands[1]);
 			else
 				url = new URL("http://" + commands[1]);
+			//3- port
 			int port = Integer.parseInt(commands[2]);
-			String version = commands[3];			
+			//4- version
+			String version;
+			if(commands[3].toLowerCase().startsWith("http/"))
+				version = commands[3];
+			else
+				version = "HTTP/"+commands[3];	
+			
 			TCPClient client = new TCPClient(command, url, port, version);
 			client.sendMessage(command, url, version, port);
 			client.receiveMessage();
@@ -118,7 +127,7 @@ class TCPClient {
 	private int port;
 	
 	/**
-	 * Client constructor.
+	 * Client constructor. Opens a Socket, en listens to the server.
 	 * @param command
 	 * @param url
 	 * @param port
