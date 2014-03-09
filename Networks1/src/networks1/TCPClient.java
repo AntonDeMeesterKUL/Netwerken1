@@ -1,10 +1,12 @@
 package networks1;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.LinkedList;
 
@@ -91,6 +93,9 @@ class TCPClient {
 	// GET www.google.com/index.html 80
 	// GET www.example.com/index.html 80 HTTP/1.1
 	// GET www.travian.nl/ 80 HTTP/1.1
+	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
+	
+	// GET localhost/index.html 6789 HTTP/1.0
 	private Socket clientSocket;
 	private PrintWriter outToServer;
 	private BufferedReader inFromServer;
@@ -159,8 +164,10 @@ class TCPClient {
 					retrieveImage(imageNeeded);
 			}
 		}
-		catch(Exception e){
-			e.printStackTrace();
+		catch(SocketException ses){
+			System.out.println("Socket close by server. Please try again.");
+		} catch(IOException ioe){
+			ioe.printStackTrace();
 		}
 	}
 	
