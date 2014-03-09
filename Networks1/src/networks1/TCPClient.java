@@ -64,6 +64,11 @@ class TCPClient {
 //	    }
 //	  }
 	
+	/**
+	 * Main method. Creates a reader, reads a sentence.
+	 * @param argv
+	 * @throws Exception
+	 */
 	public static void main(String argv[]) throws Exception { 
 		BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in)); 
 		String sentence = inFromUser.readLine();
@@ -73,13 +78,22 @@ class TCPClient {
 		}
 	} 
 	
+	/**
+	 * Parse a sentence: split it, check if correct syntax. When correct, a Client is created, to send and receive messages.
+	 * @param sentence
+	 * @throws Exception
+	 */
 	private static void parse(String sentence) throws Exception{
 		String[] commands = sentence.split("[ ]+");
 		if(!(commands.length == 4))
 			System.err.println("Please enter a correct statement. \nThe correct syntax is: HTTPCommand URI Port HTTPversion");
 		else{
 			String command = commands[0];
-			URL url = new URL("http://" + commands[1]);
+			URL url;
+			if(commands[1].toLowerCase().contains("http://"))
+				url = new URL(commands[1]);
+			else
+				url = new URL("http://" + commands[1]);
 			int port = Integer.parseInt(commands[2]);
 			String version = commands[3];			
 			TCPClient client = new TCPClient(command, url, port, version);
@@ -94,7 +108,7 @@ class TCPClient {
 	// GET www.example.com/index.html 80 HTTP/1.1
 	// GET www.travian.nl/ 80 HTTP/1.1
 	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
-	
+	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/zitting3.html 80 HTTP/1.0
 	// GET localhost/index.html 6789 HTTP/1.0
 	private Socket clientSocket;
 	private PrintWriter outToServer;
@@ -103,6 +117,14 @@ class TCPClient {
 	private URL url;
 	private int port;
 	
+	/**
+	 * Client constructor.
+	 * @param command
+	 * @param url
+	 * @param port
+	 * @param version
+	 * @throws Exception
+	 */
 	public TCPClient(String command, URL url, int port, String version) throws Exception{
 		
 		if(url == null || url.getHost() =="" || port < 0)
@@ -133,6 +155,13 @@ class TCPClient {
 		}
 	}
 	
+	/**
+	 * Send the correct message to the server.
+	 * @param command
+	 * @param url
+	 * @param version
+	 * @param port
+	 */
 	public void sendMessage(String command, URL url, String version, int port){
 		try{
 			String sentence = command + " " + url.getFile() + " " + version;
@@ -150,6 +179,9 @@ class TCPClient {
 		}
 	}
 	
+	/**
+	 * Receive and print what the server sends. Check if there are images.
+	 */
 	public void receiveMessage(){
 		try{
 			String modifiedSentence = inFromServer.readLine(); 
@@ -173,8 +205,12 @@ class TCPClient {
 	
 	private LinkedList<String> imagesNeeded;
 	
+	/**
+	 * Search if a sentence contains an image source.
+	 * @param sentence
+	 */
 	private void searchForImages(String sentence){
-		if(sentence.contains("<img")){
+		if(sentence.toLowerCase().contains("<img")){
 			int src = sentence.indexOf("src=");
 			int begin = sentence.indexOf('"', src) + 1;
 			int end = sentence.indexOf('"', begin);
@@ -187,11 +223,15 @@ class TCPClient {
 		}
 	}
 	
+	/**
+	 * Retrieve images for HTTP/1.0.
+	 * @param imageNeeded
+	 */
 	private void retrieveImage(String imageNeeded){
 		outToServer.println("GET " + url.getFile() + imageNeeded + " " + port + " " + version);
 		System.out.println(url.getFile() + imageNeeded);
 		outToServer.println("Host: " + url.getHost() + ":" + port);
-		outToServer.println();;
+		outToServer.println();
 		try{
 			String modifiedSentence = inFromServer.readLine(); 
 			while(modifiedSentence != null){
