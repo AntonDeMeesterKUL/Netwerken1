@@ -13,7 +13,7 @@ import java.util.LinkedList;
 
 public class Client {
 	
-	// GET www.google.com/index.html 80
+	// GET www.google.com/index.html 80 HTTP/1.1
 	// GET www.example.com/index.html 80 HTTP/1.1
 	// GET www.travian.nl/ 80 HTTP/1.1
 	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
@@ -38,8 +38,7 @@ public class Client {
 				try{
 					parsed = parseCommand(sentence);
 					if(parsed[0].equals("POST") || parsed[0].equals("PUT")){
-						expectCommand=false;
-						messageBody="";
+						expectCommand=false; //we expect a messagebody now
 					}
 					else
 						expectCommand=true;
@@ -51,9 +50,8 @@ public class Client {
 				}
 			}
 			else{ //we expect a message body, not a command
-				if(sentence.isEmpty()){
-					expectCommand=true;
-				}
+				if(sentence.isEmpty())
+					expectCommand=true; //message body finished
 				else
 					messageBody += "\n" + sentence;
 			}
@@ -61,10 +59,16 @@ public class Client {
 				URL url = new URL(parsed[1]);
 				if(clients.containsKey(url.getHost()) && parsed[3].equals("HTTP/1.1")) //we already have a client to this host with HTTP/1.1
 					clients.get(url.getHost()).sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
-				else if (parsed[3].equals("HTTP/1.1")) //store new client in hashmap, for future connections to the same host
-					clients.put(url.getHost(), new Client(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody));
-				else //http/1.0
-					new Client(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+				
+				else if (parsed[3].equals("HTTP/1.1")){ //store new client in hashmap, for future connections to the same host
+					Client client = new Client(url, Integer.parseInt(parsed[2]), parsed[3]);
+					clients.put(url.getHost(), client);
+					client.sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+				} else{ //http/1.0
+					Client client = new Client(url, Integer.parseInt(parsed[2]), parsed[3]);
+					client.sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+					client.closeConnection();
+				}
 			}
 		}
 	}
@@ -111,14 +115,12 @@ public class Client {
 	
 	/**
 	 * Client constructor. Creates a socket to the given host, creates a reader and writer for the server. Calls send/receive/close methods.
-	 * @param command
 	 * @param url
 	 * @param port
 	 * @param version
-	 * @param messageBody
 	 * @throws Exception
 	 */
-	public Client(String command, URL url, int port, String version, String messageBody) throws Exception{
+	public Client(URL url, int port, String version) throws Exception{
 		if(url == null || url.getHost() =="" || port < 0)
 			throw new IllegalArgumentException("Please specify a host and a port.");
 		this.url = url;
@@ -134,9 +136,6 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
-		sendMessage(command, url, port, version, messageBody);
-		if(version.equals("HTTP/1.0"))
-			closeConnection();
 	}
 	
 	/**
