@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 public class Client {
@@ -18,6 +19,7 @@ public class Client {
 	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
 	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/zitting3.html 80 HTTP/1.0
 	// GET localhost/index.html 6789 HTTP/1.0
+	
 	/**
 	 * Main method. Reads lines, calls Parse-method and creates a Client with the appropriate commands.
 	 * @param argv
@@ -27,6 +29,7 @@ public class Client {
 		boolean expectCommand = true;
 		boolean correctSyntax = true;
 		String messageBody = "";
+		HashMap<String, Client> clients = new HashMap<String,Client>();
 		String[] parsed = new String[4];
 		BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in)); 
 		while(true){
@@ -54,8 +57,15 @@ public class Client {
 				else
 					messageBody += "\n" + sentence;
 			}
-			if(expectCommand && correctSyntax) //previous command is finished, so we can send it
-				new Client(parsed[0], new URL(parsed[1]), Integer.parseInt(parsed[2]), parsed[3], messageBody);
+			if(expectCommand && correctSyntax){ //previous command is finished, so we can send it
+				URL url = new URL(parsed[1]);
+				if(clients.containsKey(url.getHost()) && parsed[3].equals("HTTP/1.1")) //we already have a client to this host with HTTP/1.1
+					clients.get(url.getHost()).sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+				else if (parsed[3].equals("HTTP/1.1")) //store new client in hashmap, for future connections to the same host
+					clients.put(url.getHost(), new Client(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody));
+				else //http/1.0
+					new Client(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+			}
 		}
 	}
 	
@@ -94,7 +104,7 @@ public class Client {
 	private Socket clientSocket;
 	private PrintWriter outToServer;
 	private BufferedReader inFromServer;
-	private String command, version, messageBody;
+	private String version;
 	private URL url;
 	private int port;
 	private LinkedList<String> imagesNeeded;
@@ -111,11 +121,9 @@ public class Client {
 	public Client(String command, URL url, int port, String version, String messageBody) throws Exception{
 		if(url == null || url.getHost() =="" || port < 0)
 			throw new IllegalArgumentException("Please specify a host and a port.");
-		this.command = command;
 		this.url = url;
 		this.port = port;
 		this.version = version;
-		this.messageBody = messageBody;
 		imagesNeeded = new LinkedList<String>();
 		try {
 			createConnection(url.getHost(), port);
@@ -126,8 +134,7 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
-		sendMessage(command, url, version, port, messageBody);
-		receiveMessage();
+		sendMessage(command, url, port, version, messageBody);
 		if(version.equals("HTTP/1.0"))
 			closeConnection();
 	}
@@ -168,7 +175,7 @@ public class Client {
 	 * @param port
 	 * @param messageBody
 	 */
-	public void sendMessage(String command, URL url, String version, int port, String messageBody){
+	public void sendMessage(String command, URL url, int port, String version, String messageBody){
 		try{
 			String message = command + " " + url.getFile() + " " + version;
 			if(version.equals("HTTP/1.1")) //mandatory Host-header
@@ -185,6 +192,7 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
+		receiveMessage();
 	}
 	
 	/**
@@ -203,8 +211,7 @@ public class Client {
 				for(String imageNeeded: imagesNeeded)
 					retrieveImage(imageNeeded);
 			}
-		}
-		catch(SocketException ses){
+		} catch(SocketException ses){
 			System.out.println("Socket close by server. Please try again.");
 		} catch(IOException ioe){
 			ioe.printStackTrace();
