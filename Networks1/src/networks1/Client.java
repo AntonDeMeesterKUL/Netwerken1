@@ -33,6 +33,7 @@ public class Client {
 		String[] parsed = new String[4];
 		BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in)); 
 		while(true){
+		//	System.out.println("Ready for a new command");
 			String sentence = inFromUser.readLine();
 			if(expectCommand){ //we expect a command, not a message body
 				try{
@@ -79,7 +80,7 @@ public class Client {
 	 * @return
 	 * @throws Exception
 	 */
-	private static String[] parseCommand(String sentence) throws Exception{
+	private static String[] parseCommand(String sentence) throws Exception {
 		String[] split = sentence.split("[ ]+");
 		String[] command = new String[4];
 		if(!(split.length == 4))
@@ -197,13 +198,32 @@ public class Client {
 	/**
 	 * Receive and print a message given by the server.
 	 */
+	// HEAD localhost/index.html 6789 HTTP/1.0
 	private void receiveMessage(){
+		System.out.println("Started receiving messages.");
+		//long startedTime = System.currentTimeMillis();
 		try{
 			String modifiedSentence = inFromServer.readLine(); 
-			while(modifiedSentence != null){
+			//long currentTime;
+			//boolean lastBreak = false;
+			//int i = 0;
+			while(modifiedSentence != null && !clientSocket.isClosed()){
+//				if(lastBreak && (modifiedSentence.isEmpty() || modifiedSentence.equals("\n")))
+//				break;
+//				if(modifiedSentence.isEmpty() || modifiedSentence.equals("\n"))
+//					lastBreak = true;
+//				else
+//					lastBreak = false;
+//				currentTime = System.currentTimeMillis();
+//				if(currentTime - startedTime > 5000){
+//					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
+//					break;
+//				}
 				searchForImages(modifiedSentence);
 				System.out.println(modifiedSentence);
+				//System.out.println("start recv");
 				modifiedSentence = inFromServer.readLine();
+				//System.out.println("stop recv");
 			}
 			System.out.println("Done with receiving code lines.");
 			if(version.equals("HTTP/1.0")){					
@@ -254,4 +274,7 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
+
+//	
+	
 }

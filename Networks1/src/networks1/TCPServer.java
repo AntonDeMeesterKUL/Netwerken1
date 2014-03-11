@@ -1,22 +1,24 @@
 package networks1;
 
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.LinkedList;
+import java.util.Date;
 
 
 class TCPServer implements Runnable { 
 	
+	public static final int SERVER_PORT = 6789;
 	public static void main(String argv[]) throws Exception { 
-		ServerSocket welcomeSocket = new ServerSocket(6789); 
+		ServerSocket welcomeSocket = new ServerSocket(SERVER_PORT); 
 		while(true) { 
 			Socket clientSocket = welcomeSocket.accept(); 
 			if(clientSocket != null){
@@ -30,17 +32,17 @@ class TCPServer implements Runnable {
 	
 	private Socket clientSocket;
 	private BufferedReader inFromClient;
-	private DataOutputStream outToClient;
+	private PrintWriter outToClient;
 	
 	public TCPServer(Socket client){
 		try{
 			clientSocket = client;
 			inFromClient = new BufferedReader(new InputStreamReader (clientSocket.getInputStream()));
-			outToClient = new DataOutputStream(clientSocket.getOutputStream()); 
+			outToClient = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 		} catch(Exception e){
 			System.err.println("Error in TCPServer constructor.");
 		}
-		totalCommand = new LinkedList<String>();
+		System.out.println("We created the Server");
 	}
 	
 	private boolean terminated = false;
@@ -52,13 +54,12 @@ class TCPServer implements Runnable {
 			else{
 				try{
 					String clientSentence = inFromClient.readLine(); 
-					System.out.println(clientSentence);
+					System.out.println("Parsing " + clientSentence);
 					if(clientSentence != null)
 						parse(clientSentence);
 				} 
 				catch(SocketException e){
 					terminated = true;
-					break;
 				}
 				catch(Exception e){
 					e.printStackTrace();
@@ -69,49 +70,27 @@ class TCPServer implements Runnable {
 		System.out.println("Shutting down ThreadHandler.");
 	}
 	
-	private boolean lastBreak = false;
-	private LinkedList<String> totalCommand;
-	private boolean firstCommandCorrect = false;
 	private int version;
-	private String returnString;
 	
 	private void parse(String parsing){
-		if(parsing.equals("") && !lastBreak){
-			lastBreak = true;
-		} else if(parsing.equals("") && lastBreak){
-			lastBreak = false;
-			doSomething();
-		} else {
-			totalCommand.add(parsing);
-		}
+		if(parsing.toLowerCase().startsWith("get")){
+			get(parsing);
+		} else if (parsing.toLowerCase().startsWith("head")){
+			head(parsing);
+		} else if (parsing.toLowerCase().startsWith("put")){
+			put(parsing);
+		} else if (parsing.toLowerCase().startsWith("post")){
+			post(parsing);
+		} else
+			;//FUCK YOU
 	}
 	
-	private void doSomething(){
-		while(!totalCommand.isEmpty()){
-			String command = totalCommand.poll();
-			if(command.equals("")){
-				if(firstCommandCorrect && version == 0){
-					sendBack(returnString);
-				}
-			}
-			else{
-				String[] commands = command.split("[ ]+");
-				if(commands[0].equals("GET"))
-					get(commands);
-				else if(command.equals("HEAD"))
-					head(commands);
-				else if(commands[0].equals("PUT"))
-					put(commands);
-				else if(commands[0].equals("POST"))
-					post(commands);
-				else
-					other(commands);
-				}
-		}
-	}
-	
-	private void get(String[] commands){
-		if(commands.length == 3 || commands.length == 2){
+	private void get(String command){
+		System.out.println("We got to GET");
+		String[] commands = command.split("[ ]+");
+		if(!(commands.length == 3 || commands.length == 2))
+			return;
+		else{
 			if(commands.length == 3){
 				String versionString = commands[2];
 				if(versionString.equals("HTTP/1.0"))
@@ -120,70 +99,107 @@ class TCPServer implements Runnable {
 					version = 1;
 			} else
 				version = 1;
-			lastCommand = COMMAND.GET;
+			String file = commands[1];
 			String toPrint = "";
-			if(commands[1].equals("/forbiddenPage"))
-				toPrint = "Error 403, Forbidden page.";
-			else {
-				File file = new File("/webpages" + commands[1]);
-				try{
-					BufferedReader fileReader = new BufferedReader(new FileReader(file));
-					String next = fileReader.readLine();
-					while(next != null){
-						toPrint = toPrint + next + "\n";
-						next = fileReader.readLine();
-					}
-					fileReader.close();
-				} catch(FileNotFoundException fnfe){
-					toPrint = "Error 404, file not found. Please try another page.";
+			
+			if(!checkHeader())
+				return;
+			
+			File realFile = new File("/webpages" + file);
+			try{
+				BufferedReader fileReader = new BufferedReader(new FileReader(realFile));
+				String next = fileReader.readLine();
+				while(next != null){
+					toPrint += getHeader() + "\n";
+					toPrint = toPrint + next + "\n";
+					next = fileReader.readLine();
 				}
-				catch(IOException ioe) {
-					System.err.println("Error in sending messages back. @ get @ TCPServer");
-				}
-				returnString = toPrint;
-				firstCommandCorrect = true;
+				fileReader.close();
+			} catch(FileNotFoundException fnfe){
+				toPrint = "Error 404, file not found. Please try another page.";
 			}
+			catch(IOException ioe) {
+				System.err.println("Error in sending messages back. @ get @ TCPServer");
+			}
+			sendBack(toPrint);
+			if(version == 0)
+				terminated = true;
 		}
 	}
 	
-	private void head(String[] commands){
-		lastCommand = COMMAND.HEAD;
-	}
-	
-	private void put(String[] commands){
-		lastCommand = COMMAND.PUT;
-	}
-	
-	private void post(String[] commands){
-		lastCommand = COMMAND.POST;
-	}
-	
-	private void other(String[] commands){
-		if(firstCommandCorrect && version == 1 && commands.length > 3){
-			if(commands[0].equalsIgnoreCase("Host:") && commands[1].equalsIgnoreCase("localhost:6789"))
-				sendBack(returnString);
+	private void head(String command){
+		System.out.println("WE GOT TO HEAD!");
+		String[] commands = command.split("[ ]+");
+		if(!(commands.length == 3 || commands.length == 2))
+			return;
+		else{
+			if(commands.length == 3){
+				String versionString = commands[2];
+				if(versionString.equals("HTTP/1.0"))
+					version = 0;
+				else 
+					version = 1;
+			} else
+				version = 1;
+			String toPrint = "";
+			if(!checkHeader())
+				return;
+			
+			toPrint = getHeader();
+			sendBack(toPrint);
+			if(version == 0)
+				terminated = true;
 		}
-		else if(firstCommandCorrect && version == 0)
-			sendBack(returnString);
-		lastCommand = COMMAND.NONE;
-		firstCommandCorrect = false;
+	}
+	
+	private void put(String commands){
+		post(commands);
+	}
+	
+	private void post(String commands){
 	}
 	
 	private void sendBack(String toPrint){
-		if(!returnString.equals("")){
+		if(!toPrint.equals("")){
 			try{
-				outToClient.writeBytes(returnString);
-				System.out.println(returnString);
+				outToClient.println(toPrint);
+				outToClient.flush();
+				System.out.println(toPrint);
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");
 			}
 		}
-		returnString = "";
 	}
 	
-	private COMMAND lastCommand = COMMAND.NONE;
+	private String getHeader(){
+		String header =  "HTTP/1." + version + " 200 OK\n";
+		header += "Server: Localhost\n";
+		header += "Content-language: nl\n";
+		header += "Last-Modified: Wed, 2 Sep 2093 13:37:00 CET\n";
+		header += "Date: " + (new Date()).toString();
+		if(version == 1)
+			header += "Connection: keep-alive\n";
+		return header;
+	}
 	
-	private enum COMMAND{
-		GET, HEAD, PUT, POST, NONE;
+	private boolean checkHeader(){	
+		String header = "";
+		try{
+			header = inFromClient.readLine();
+			System.out.println("header is: " + header);
+		} catch(IOException ioe){
+			System.err.println("Error in checkHeader. Cannot read next line from client.");
+			return false;
+		}
+		if(version == 0){
+			if(header == null || header == "" || header.isEmpty()){
+				return true; }
+		} else{ //version == 1
+			String correct = "Host: localhost:" + SERVER_PORT;
+			if(header.equals(correct))
+				return true;
+			return false;
+		}
+		return false;
 	}
 } 

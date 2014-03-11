@@ -192,9 +192,16 @@ class TCPClient {
 	 * Receive and print what the server sends. Check if there are images.
 	 */
 	public void receiveMessage(){
+		long startedTime = System.currentTimeMillis();
 		try{
 			String modifiedSentence = inFromServer.readLine(); 
+			long currentTime;
 			while(modifiedSentence != null){
+				currentTime = System.currentTimeMillis();
+				if(currentTime - startedTime > 5000){
+					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
+					break;
+				}
 				searchForImages(modifiedSentence);
 				System.out.println(modifiedSentence);
 				modifiedSentence = inFromServer.readLine();
