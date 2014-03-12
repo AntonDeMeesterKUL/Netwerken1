@@ -1,6 +1,7 @@
 package networks1;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,6 +22,7 @@ public class Client {
 	// GET www.travian.nl/ 80 HTTP/1.1
 	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
 	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/Oefenzitting3vliegtuig.jpg 80 HTTP/1.0
+	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/zitting3.html 80 HTTP/1.0
 	// GET localhost/index.html 6789 HTTP/1.0
 	
 	/**
@@ -117,7 +119,7 @@ public class Client {
 	private URL url;
 	private int port;
 	private LinkedList<String> imagesNeeded;
-	private static int fileNumber = 0;
+	public static int fileNumber = 0;
 	
 	/**
 	 * Client constructor. Creates a socket to the given host, creates a reader and writer for the server. Calls send/receive/close methods.
@@ -211,11 +213,13 @@ public class Client {
 		try{
 			byte[] buffer = new byte[4096];
 		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + ".jpg");
+		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + ".html");
 	    	fileNumber++;
+	    	String thing = "";
 		    while((bytes_read = inFromServer.read(buffer)) != -1){
 		    	System.out.write(buffer, 0, bytes_read);
 		    	toFile.write(buffer, 0, bytes_read);
+		    	thing += new String(buffer,"UTF-8");
 		    }
 		    toFile.close();
 			//String modifiedSentence = inFromServer.readLine(); 
@@ -234,17 +238,17 @@ public class Client {
 //					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
 //					break;
 //				}
-				//searchForImages(modifiedSentence);
+				searchForImages(thing);
 				//System.out.println(modifiedSentence);
 				//System.out.println("start recv");
 				//modifiedSentence = inFromServer.readLine();
 				//System.out.println("stop recv");
 			//}
 			System.out.println("Done with receiving code lines.");
-			//if(version.equals("HTTP/1.0")){					
-				//for(String imageNeeded: imagesNeeded)
-					//retrieveImage(imageNeeded);
-			//}
+			if(version.equals("HTTP/1.0")){					
+				for(String imageNeeded: imagesNeeded)
+					retrieveImage(imageNeeded);
+			}
 		} catch(SocketException ses){
 			System.out.println("Socket close by server. Please try again.");
 		} catch(IOException ioe){
@@ -253,16 +257,23 @@ public class Client {
 	}
 	
 	private void searchForImages(String sentence){
-		if(sentence.toLowerCase().contains("<img")){
+		if(sentence == null)
+			return;
+		while(sentence.toLowerCase().contains("<img")){
 			int src = sentence.indexOf("src=");
 			int begin = sentence.indexOf('"', src) + 1;
 			int end = sentence.indexOf('"', begin);
 			if(version.equals("HTTP/1.0"))
 				imagesNeeded.add(sentence.substring(begin, end));
 			else if(version.equals("HTTP/1.1")){
-				ImageGetter ig = new ImageGetter(clientSocket, url, port, sentence.substring(begin, end));
-				(new Thread(ig)).start();
+				try{
+					ImageGetter ig = new ImageGetter(clientSocket, url, port, sentence.substring(begin, end));
+					(new Thread(ig)).start();
+				} catch(IOException ioe){
+					;
+				}
 			}
+			sentence = sentence.substring(end + 1);
 		}
 	}
 	
@@ -278,15 +289,19 @@ public class Client {
 		outToServer.println("Host: " + url.getHost() + ":" + port);
 		outToServer.println();
 		try{
-			String modifiedSentence = inFromServer.readLine(); 
-			while(modifiedSentence != null){
-				searchForImages(modifiedSentence);
-				System.out.println("FROM SERVER: " + modifiedSentence);
-				modifiedSentence = inFromServer.readLine();
-			}
-			System.out.println("Done with receiving image.");
-		} catch(Exception e){
-			e.printStackTrace();
+			byte[] buffer = new byte[4096];
+		    int bytes_read;
+		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\image" + fileNumber + ".jpg");
+	    	fileNumber++;
+	    	String thing = "";
+		    while((bytes_read = inFromServer.read(buffer)) != -1){
+		    	System.out.write(buffer, 0, bytes_read);
+		    	toFile.write(buffer, 0, bytes_read);
+		    	thing += new String(buffer,"UTF-8");
+		    }
+		    toFile.close();
+		} catch(Exception fnfe){
+			;
 		}
 	}
 

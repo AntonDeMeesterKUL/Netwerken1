@@ -1,34 +1,45 @@
 package networks1;
 
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
-
-import javax.imageio.ImageIO;
 
 public class ImageGetter implements Runnable{
 
 	public void run(){
-		outToServer.println("GET " + url.getFile() + " " + port + " HTTP/1.1");
-		outToServer.println("Host: " + url.getHost() + ":" + port);
-		outToServer.println();
-		System.out.println("GET " + url.getFile() + " " + port + " HTTP/1.1");
-		System.out.println("Host: " + url.getHost() + ":" + port);
+//		outToServer.println("GET " + url.getFile() + " " + port + " HTTP/1.1");
+//		outToServer.println("Host: " + url.getHost() + ":" + port);
+//		outToServer.println();
+//		System.out.println("GET " + url.getFile() + " " + port + " HTTP/1.1");
+//		System.out.println("Host: " + url.getHost() + ":" + port);
+//		try{
+//			BufferedImage image = ImageIO.read(inFromServer);
+//			File outputFile = new File(filePath + file);
+//			//if(image != null)
+//				ImageIO.write(image, "png", outputFile);
+//			socket.close();
+//		} catch(Exception e){
+//			e.printStackTrace();
+//		}
 		try{
-			BufferedImage image = ImageIO.read(inFromServer);
-			File outputFile = new File(filePath + file);
-			//if(image != null)
-				ImageIO.write(image, "png", outputFile);
-			socket.close();
-		} catch(Exception e){
-			e.printStackTrace();
+			byte[] buffer = new byte[4096];
+		    int bytes_read;
+		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\image" + Client.fileNumber + ".png");
+	    	Client.fileNumber++;
+	    	String thing = "";
+		    while((bytes_read = inFromServer.read(buffer)) != -1){
+		    	System.out.write(buffer, 0, bytes_read);
+		    	toFile.write(buffer, 0, bytes_read);
+		    	thing += new String(buffer,"UTF-8");
+		    }
+		    toFile.close();
+		} catch(Exception fnfe){
+			;
 		}
 	}
 	
@@ -37,21 +48,25 @@ public class ImageGetter implements Runnable{
 	private URL url;
 	private int port;
 	private PrintWriter outToServer;
-	private BufferedInputStream inFromServer;
+	private InputStream inFromServer;
 	private String filePath = "/src/networks1/images/";
 	
-	public ImageGetter(Socket socket, URL url, int port, String imageFile){
+	public ImageGetter(Socket socket, URL url, int port, String imageFile) throws IOException{
 		//this.socket = socket;
 		file = imageFile;
 		this.port = port;
-		try{
-			outToServer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-			inFromServer = new BufferedInputStream(socket.getInputStream());
-			this.url = new URL("http:" + imageFile);
-			this.socket = new Socket(url.getHost(), port);
-		} catch(Exception e){
-			System.err.println("Error in constructor of ImageGetter");
-		}
+		outToServer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+		inFromServer =socket.getInputStream();
+//		if(imageFile.toLowerCase().startsWith("http://") || imageFile.toLowerCase().startsWith("www.")){ //full address
+//			outToServer.println("GET " + imageFile + " " + port + " HTTP/1.1");
+//			System.out.println("GET " + imageFile + " " + port + " HTTP/1.1");
+//		}
+//		else{ //relative address
+//			outToServer.println("GET " + url.getHost() + imageFile + " " + port + " HTTP/1.1");
+//			System.out.println("GET " + imageFile + " " + port + " HTTP/1.1");
+//		}
+//		outToServer.println("Host: " + url.getHost() + ":" + port);
+//		outToServer.println();
 	}
 		
 }
