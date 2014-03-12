@@ -16,7 +16,9 @@ import java.util.Date;
 
 class TCPServer implements Runnable { 
 	
-	public static final int SERVER_PORT = 6789;
+	public static final int SERVER_PORT = 80;
+	public static int putIndex, postIndex;
+	
 	public static void main(String argv[]) throws Exception { 
 		ServerSocket welcomeSocket = new ServerSocket(SERVER_PORT); 
 		while(true) { 
@@ -54,7 +56,8 @@ class TCPServer implements Runnable {
 			else{
 				try{
 					String clientSentence = inFromClient.readLine(); 
-					System.out.println("Parsing " + clientSentence);
+					if(clientSentence != null)
+						System.out.println("Parsing " + clientSentence);
 					if(clientSentence != null)
 						parse(clientSentence);
 				} 
@@ -152,11 +155,50 @@ class TCPServer implements Runnable {
 		}
 	}
 	
-	private void put(String commands){
-		post(commands);
+	private void put(String command){
+		System.out.println("WE GOT TO PUT!");
+		post(command);
 	}
 	
-	private void post(String commands){
+	private void post(String command){
+		System.out.println("WE GOT TO POST!");
+		String[] commands = command.split("[ ]+");
+		if(!(commands.length == 3 || commands.length == 2))
+			return;
+		else{
+			if(commands.length == 3){
+				String versionString = commands[2];
+				if(versionString.equals("HTTP/1.0"))
+					version = 0;
+				else 
+					version = 1;
+			} else
+				version = 1;
+			String toPrint = "";
+			if(!checkHeader())
+				return;
+			
+			
+			try{
+				PrintWriter pw = new PrintWriter("C:/post" + postIndex, "UTF-8");
+				String modifiedSentence = inFromClient.readLine(); 
+				boolean lastEmpty = false;
+				while(modifiedSentence != null && lastEmpty && !clientSocket.isClosed()){
+					System.out.println(modifiedSentence);
+					pw.println(modifiedSentence);
+					if(modifiedSentence.isEmpty())
+						lastEmpty = true;
+					modifiedSentence = inFromClient.readLine();
+				}
+				pw.close();
+			} catch(Exception e){
+				System.err.println("Error in post. Cannot write data to system.");
+			}
+			toPrint = "Read post. Thank you.";
+			sendBack(toPrint);
+			if(version == 0)
+				terminated = true;
+		}
 	}
 	
 	private void sendBack(String toPrint){
@@ -201,5 +243,12 @@ class TCPServer implements Runnable {
 			return false;
 		}
 		return false;
+	}
+	
+	public static void increasePutIndex(){
+		putIndex++;
+	}
+	public static void increasePostIndex(){
+		postIndex++;
 	}
 } 
