@@ -138,9 +138,9 @@ public class Client {
 		try {
 			createConnection(url.getHost(), port);
 			System.out.println("Connected to: " + url.getHost() + " with port: " + port + ".");
-			outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 			//inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			inFromServer = clientSocket.getInputStream();
+			outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -186,7 +186,7 @@ public class Client {
 	public void sendMessage(String command, URL url, int port, String version, String messageBody){
 		try{
 			String message = command + " " + url.getFile() + " " + version;
-			if(version.equals("HTTP/1.1")) //mandatory Host-header
+			//if(version.equals("HTTP/1.1")) //mandatory Host-header
 				message += "\nHost: "+ url.getHost() + ":" + port;
 			if(command.equals("PUT") || command.equals("POST")) 
 				message += messageBody;
@@ -196,6 +196,7 @@ public class Client {
 			outToServer.println(message);
 			outToServer.flush();
 			System.out.println("Flushed the writer.");
+			//outToServer.close();
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -213,7 +214,7 @@ public class Client {
 		try{
 			byte[] buffer = new byte[4096];
 		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + ".html");
+		    OutputStream toFile = new FileOutputStream("src/networks1/receive/" + fileNumber + ".html");
 	    	fileNumber++;
 	    	String thing = "";
 		    while((bytes_read = inFromServer.read(buffer)) != -1){
@@ -238,19 +239,20 @@ public class Client {
 //					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
 //					break;
 //				}
-				searchForImages(thing);
+		    System.out.println(thing);
+				//searchForImages(thing);
 				//System.out.println(modifiedSentence);
 				//System.out.println("start recv");
 				//modifiedSentence = inFromServer.readLine();
 				//System.out.println("stop recv");
 			//}
 			System.out.println("Done with receiving code lines.");
-			if(version.equals("HTTP/1.0")){					
-				for(String imageNeeded: imagesNeeded)
-					retrieveImage(imageNeeded);
-			}
+//			if(version.equals("HTTP/1.0")){					
+//				for(String imageNeeded: imagesNeeded)
+//					retrieveImage(imageNeeded);
+//			}
 		} catch(SocketException ses){
-			System.out.println("Socket close by server. Please try again.");
+			System.out.println("Socket closed by server. Please try again.");
 		} catch(IOException ioe){
 			ioe.printStackTrace();
 		}

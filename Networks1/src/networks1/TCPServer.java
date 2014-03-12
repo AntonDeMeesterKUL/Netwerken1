@@ -3,9 +3,11 @@ package networks1;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -16,8 +18,8 @@ import java.util.Date;
 
 class TCPServer implements Runnable { 
 	
-	public static final int SERVER_PORT = 80;
-	public static int putIndex, postIndex;
+	public static final int SERVER_PORT = 6789;
+	public static int putIndex, postIndex, receive;
 	
 	public static void main(String argv[]) throws Exception { 
 		ServerSocket welcomeSocket = new ServerSocket(SERVER_PORT); 
@@ -62,13 +64,18 @@ class TCPServer implements Runnable {
 						parse(clientSentence);
 				} 
 				catch(SocketException e){
-					terminated = true;
+					//terminated = true;
 				}
 				catch(Exception e){
 					e.printStackTrace();
 				}
 				
 			}
+		}
+		try{
+			clientSocket.close();
+		} catch(IOException ioe){
+			System.out.println("Cannot close socket.");
 		}
 		System.out.println("Shutting down ThreadHandler.");
 	}
@@ -108,12 +115,14 @@ class TCPServer implements Runnable {
 			if(!checkHeader())
 				return;
 			
-			File realFile = new File("/webpages" + file);
+			toPrint += getHeader() + "\n";
+			System.out.println(file);
+			File realFile = new File("src/networks1/webpages" + file);
+			System.out.println(realFile);
 			try{
 				BufferedReader fileReader = new BufferedReader(new FileReader(realFile));
 				String next = fileReader.readLine();
-				while(next != null){
-					toPrint += getHeader() + "\n";
+				while(next != null){					
 					toPrint = toPrint + next + "\n";
 					next = fileReader.readLine();
 				}
@@ -178,19 +187,16 @@ class TCPServer implements Runnable {
 			if(!checkHeader())
 				return;
 			
-			
 			try{
-				PrintWriter pw = new PrintWriter("C:/post" + postIndex, "UTF-8");
+				OutputStream toFile = new FileOutputStream("src/networks1/post/post" + postIndex + ".txt");
+				//PrintWriter pw = new PrintWriter("src/networks1/post/" + postIndex, "UTF-8");
 				String modifiedSentence = inFromClient.readLine(); 
-				boolean lastEmpty = false;
-				while(modifiedSentence != null && lastEmpty && !clientSocket.isClosed()){
+				while(modifiedSentence != null){
 					System.out.println(modifiedSentence);
-					pw.println(modifiedSentence);
-					if(modifiedSentence.isEmpty())
-						lastEmpty = true;
+					toFile.write(modifiedSentence.getBytes());
 					modifiedSentence = inFromClient.readLine();
 				}
-				pw.close();
+				toFile.close();
 			} catch(Exception e){
 				System.err.println("Error in post. Cannot write data to system.");
 			}
@@ -206,7 +212,8 @@ class TCPServer implements Runnable {
 			try{
 				outToClient.println(toPrint);
 				outToClient.flush();
-				System.out.println(toPrint);
+				System.out.println("Sent: \n" + toPrint);
+				//outToClient.close();
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");
 			}
@@ -233,11 +240,11 @@ class TCPServer implements Runnable {
 			System.err.println("Error in checkHeader. Cannot read next line from client.");
 			return false;
 		}
+		String correct = "Host: localhost:" + SERVER_PORT;
 		if(version == 0){
-			if(header == null || header == "" || header.isEmpty()){
+			if(header == null || header == "" || header.isEmpty() || header.equals(correct)){
 				return true; }
 		} else{ //version == 1
-			String correct = "Host: localhost:" + SERVER_PORT;
 			if(header.equals(correct))
 				return true;
 			return false;
@@ -250,5 +257,8 @@ class TCPServer implements Runnable {
 	}
 	public static void increasePostIndex(){
 		postIndex++;
+	}
+	public static void increaseReceiveIndex(){
+		receive++;
 	}
 } 
