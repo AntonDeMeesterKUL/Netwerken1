@@ -1,8 +1,11 @@
 package networks1;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -17,7 +20,7 @@ public class Client {
 	// GET www.example.com/index.html 80 HTTP/1.1
 	// GET www.travian.nl/ 80 HTTP/1.1
 	// GET nl.wikipedia.org/wiki/Hoofdpagina 80 HTTP/1.1
-	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/zitting3.html 80 HTTP/1.0
+	// GET http://www.student.kuleuven.be/~r0299122/DOCUMENTEN/Oefenzitting3vliegtuig.jpg 80 HTTP/1.0
 	// GET localhost/index.html 6789 HTTP/1.0
 	
 	/**
@@ -108,11 +111,13 @@ public class Client {
 	
 	private Socket clientSocket;
 	private PrintWriter outToServer;
-	private BufferedReader inFromServer;
+	//private BufferedReader inFromServer;
+	private InputStream inFromServer;
 	private String version;
 	private URL url;
 	private int port;
 	private LinkedList<String> imagesNeeded;
+	private static int fileNumber = 0;
 	
 	/**
 	 * Client constructor. Creates a socket to the given host, creates a reader and writer for the server. Calls send/receive/close methods.
@@ -132,7 +137,8 @@ public class Client {
 			createConnection(url.getHost(), port);
 			System.out.println("Connected to: " + url.getHost() + " with port: " + port + ".");
 			outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
-			inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			//inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			inFromServer = clientSocket.getInputStream();
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -203,11 +209,20 @@ public class Client {
 		System.out.println("Started receiving messages.");
 		//long startedTime = System.currentTimeMillis();
 		try{
-			String modifiedSentence = inFromServer.readLine(); 
-			//long currentTime;
-			//boolean lastBreak = false;
-			//int i = 0;
-			while(modifiedSentence != null && !clientSocket.isClosed()){
+			byte[] buffer = new byte[4096];
+		    int bytes_read;
+		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + ".jpg");
+	    	fileNumber++;
+		    while((bytes_read = inFromServer.read(buffer)) != -1){
+		    	System.out.write(buffer, 0, bytes_read);
+		    	toFile.write(buffer, 0, bytes_read);
+		    }
+		    toFile.close();
+			//String modifiedSentence = inFromServer.readLine(); 
+			////long currentTime;
+			////boolean lastBreak = false;
+			////int i = 0;
+			//while(modifiedSentence != null && !clientSocket.isClosed()){
 //				if(lastBreak && (modifiedSentence.isEmpty() || modifiedSentence.equals("\n")))
 //				break;
 //				if(modifiedSentence.isEmpty() || modifiedSentence.equals("\n"))
@@ -219,17 +234,17 @@ public class Client {
 //					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
 //					break;
 //				}
-				searchForImages(modifiedSentence);
-				System.out.println(modifiedSentence);
+				//searchForImages(modifiedSentence);
+				//System.out.println(modifiedSentence);
 				//System.out.println("start recv");
-				modifiedSentence = inFromServer.readLine();
+				//modifiedSentence = inFromServer.readLine();
 				//System.out.println("stop recv");
-			}
+			//}
 			System.out.println("Done with receiving code lines.");
-			if(version.equals("HTTP/1.0")){					
-				for(String imageNeeded: imagesNeeded)
-					retrieveImage(imageNeeded);
-			}
+			//if(version.equals("HTTP/1.0")){					
+				//for(String imageNeeded: imagesNeeded)
+					//retrieveImage(imageNeeded);
+			//}
 		} catch(SocketException ses){
 			System.out.println("Socket close by server. Please try again.");
 		} catch(IOException ioe){
