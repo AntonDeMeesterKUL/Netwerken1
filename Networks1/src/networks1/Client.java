@@ -263,16 +263,16 @@ public class Client {
 			int src = sentence.toLowerCase().indexOf("src=");
 			int begin = sentence.indexOf('"', src) + 1;
 			int end = sentence.indexOf('"', begin);
-			if(version.equals("HTTP/1.0"))
+//			if(version.equals("HTTP/1.0"))
 				imagesNeeded.add(sentence.substring(begin, end));
-			else if(version.equals("HTTP/1.1")){
-				try{
-					ImageGetter ig = new ImageGetter(clientSocket, url, port, sentence.substring(begin, end));
-					(new Thread(ig)).start();
-				} catch(IOException ioe){
-					;
-				}
-			}
+//			else if(version.equals("HTTP/1.1")){
+//				try{
+//					ImageGetter ig = new ImageGetter(clientSocket, url, port, sentence.substring(begin, end));
+//					(new Thread(ig)).start();
+//				} catch(IOException ioe){
+//					;
+//				}
+//			}
 			sentence = sentence.substring(end + 1);
 		}
 	}

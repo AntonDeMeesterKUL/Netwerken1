@@ -44,7 +44,6 @@ class TCPServer implements Runnable {
 	private Socket clientSocket;
 	private BufferedReader inFromClient;
 	private OutputStream outToClient;
-	private PrintWriter pw;
 	
 	/**
 	 * Constructor of a new TCPServer. This server will respond to one client.
@@ -57,7 +56,6 @@ class TCPServer implements Runnable {
 			clientSocket = client;
 			inFromClient = new BufferedReader(new InputStreamReader (clientSocket.getInputStream()));
 			outToClient = clientSocket.getOutputStream();
-			pw = new PrintWriter(new OutputStreamWriter(outToClient));
 		} catch(Exception e){
 			System.err.println("Error in TCPServer constructor.");
 		}
@@ -156,21 +154,21 @@ class TCPServer implements Runnable {
 					if(file.lastIndexOf(".") != -1)
 						 extension = file.substring(file.lastIndexOf("."));
 					System.out.println(realFile + " " + extension);
-					BufferedReader fileReader;
+					
 					if(extension.equals(".jpg") || extension.equals(".png") || extension.equals(".jpeg")){
 						FileInputStream fis = new FileInputStream(realFile);
 						byte[] buf = new byte[8192];
-						int len = 0; output = "";
+						int len; output = "";
 						while ((len = fis.read(buf)) != -1) {
 							outToClient.write(buf);
 						}
+						fis.close();
 						return;
 					} else {
-							fileReader = new BufferedReader(new FileReader(realFile));
-						String next = fileReader.readLine();
-						while(next != null){					
+						BufferedReader fileReader = new BufferedReader(new FileReader(realFile));
+						String next;
+						while((next = fileReader.readLine()) != null){					
 							output = output + next;
-							next = fileReader.readLine();
 						}
 						fileReader.close();
 					}
@@ -186,8 +184,8 @@ class TCPServer implements Runnable {
 			}
 		}
 		toPrint = getHeader(error);
-		toPrint += "\n" + output;
-		System.out.println(error);
+		toPrint += "\n" + output + "\ntest";
+		sendBack(toPrint);
 		if(version == 0)
 			terminated = true;
 	}
@@ -301,9 +299,7 @@ class TCPServer implements Runnable {
 	private void sendBack(String toPrint){
 		if(!toPrint.equals("")){
 			try{
-				pw.println(toPrint);
-				pw.println();
-				pw.flush();
+				outToClient.write(toPrint.getBytes());
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");
 			}
