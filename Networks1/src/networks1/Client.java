@@ -25,7 +25,7 @@ public class Client {
 	// GET localhost/index.html 6789 HTTP/1.0
 	
 	/**
-	 * Main method. Reads lines, calls Parse-method and creates a Client with the appropriate commands.
+	 * Main method. Reads and parses lines. When finished, creates a client and sends the message.
 	 * @param argv
 	 * @throws Exception
 	 */
@@ -33,11 +33,10 @@ public class Client {
 		boolean expectCommand = true;
 		boolean correctSyntax = true;
 		String messageBody = "";
-		HashMap<String, Client> clients = new HashMap<String,Client>();
-		String[] parsed = new String[4];
+		HashMap<String, Client> clients = new HashMap<String,Client>(); //list with existing clients
+		String[] parsed = new String[4]; 
 		BufferedReader inFromUser = new BufferedReader( new InputStreamReader(System.in)); 
 		while(true){
-		//	System.out.println("Ready for a new command");
 			String sentence = inFromUser.readLine();
 			if(expectCommand){ //we expect a command, not a message body
 				try{
@@ -64,7 +63,6 @@ public class Client {
 				URL url = new URL(parsed[1]);
 				if(clients.containsKey(url.getHost()) && parsed[3].equals("HTTP/1.1")) //we already have a client to this host with HTTP/1.1
 					clients.get(url.getHost()).sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
-				
 				else if (parsed[3].equals("HTTP/1.1")){ //store new client in hashmap, for future connections to the same host
 					Client client = new Client(url, Integer.parseInt(parsed[2]), parsed[3]);
 					clients.put(url.getHost(), client);
@@ -114,7 +112,6 @@ public class Client {
 	
 	private Socket clientSocket;
 	private PrintWriter outToServer;
-	//private BufferedReader inFromServer;
 	private String version;
 	private URL url;
 	private int port;
@@ -138,7 +135,6 @@ public class Client {
 		try {
 			createConnection(url.getHost(), port);
 			System.out.println("Connected to: " + url.getHost() + " with port: " + port + ".");
-			//inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -185,7 +181,6 @@ public class Client {
 	public void sendMessage(String command, URL url, int port, String version, String messageBody){
 		try{
 			String message = command + " " + url.getFile() + " " + version;
-			//if(version.equals("HTTP/1.1")) //mandatory Host-header
 				message += "\nHost: "+ url.getHost() + ":" + port +"\n";
 			if(command.equals("PUT") || command.equals("POST")) 
 				message += messageBody + "\n";
@@ -195,7 +190,6 @@ public class Client {
 			outToServer.println(message);
 			outToServer.flush();
 			System.out.println("Flushed the writer.");
-			//outToServer.close();
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -206,10 +200,8 @@ public class Client {
 	/**
 	 * Receive and print a message given by the server.
 	 */
-	// HEAD localhost/index.html 6789 HTTP/1.0
 	private void receiveMessage(URL url){
 		System.out.println("Started receiving messages.");
-		//long startedTime = System.currentTimeMillis();
 		try{
 			int start; String extension = "";
 			if((start = url.getFile().lastIndexOf(".")) != -1)
@@ -231,52 +223,28 @@ public class Client {
 						toFile.write(output.getBytes());
 				}
 				toFile.close();
+				System.out.println("Done with receiving code lines.");
+				if(version.equals("HTTP/1.0"))
+				    for(String image : imagesNeeded)
+				    	retrieveImage(image);
+				System.out.println("Images retrieved.");
 			}
 			else{
 				byte[] buffer = new byte[4096];
 			    int bytes_read;
 			    InputStream inFromServer = clientSocket.getInputStream();
-			    OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+			    OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + extension);
 		    	fileNumber++;
-		    	String thing = "";
 		    	int first = 0;
 			    while((bytes_read = inFromServer.read(buffer)) != -1){
 			    	System.out.write(buffer, 0, bytes_read);
 			    	if(first!=0)
 			    		toFile.write(buffer, 0, bytes_read);
-			    	thing += new String(buffer,"UTF-8");
 			    	first++;
 			    }
 			    toFile.close();
+			    System.out.println("Done with receiving code lines.");
 			}
-			//String modifiedSentence = inFromServer.readLine(); 
-			////long currentTime;
-			////boolean lastBreak = false;
-			////int i = 0;
-			//while(modifiedSentence != null && !clientSocket.isClosed()){
-//				if(lastBreak && (modifiedSentence.isEmpty() || modifiedSentence.equals("\n")))
-//				break;
-//				if(modifiedSentence.isEmpty() || modifiedSentence.equals("\n"))
-//					lastBreak = true;
-//				else
-//					lastBreak = false;
-//				currentTime = System.currentTimeMillis();
-//				if(currentTime - startedTime > 5000){
-//					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
-//					break;
-//				}
-		   // System.out.println(thing);
-				//searchForImages(thing);
-				//System.out.println(modifiedSentence);
-				//System.out.println("start recv");
-				//modifiedSentence = inFromServer.readLine();
-				//System.out.println("stop recv");
-			//}
-			System.out.println("Done with receiving code lines.");
-//			if(version.equals("HTTP/1.0")){					
-//				for(String imageNeeded: imagesNeeded)
-//					retrieveImage(imageNeeded);
-//			}
 		} catch(SocketException ses){
 			System.out.println("Socket closed by server. Please try again.");
 		} catch(IOException ioe){
@@ -284,11 +252,15 @@ public class Client {
 		}
 	}
 
+	/**
+	 * Search in the given string for image links.
+	 * @param sentence
+	 */
 	private void searchForImages(String sentence){
 		if(sentence == null)
 			return;
 		while(sentence.toLowerCase().contains("<img")){
-			int src = sentence.indexOf("src=");
+			int src = sentence.toLowerCase().indexOf("src=");
 			int begin = sentence.indexOf('"', src) + 1;
 			int end = sentence.indexOf('"', begin);
 			if(version.equals("HTTP/1.0"))
@@ -305,35 +277,24 @@ public class Client {
 		}
 	}
 
+	/**
+	 * Method for HTTP1.0: retrieve image.
+	 * @param imageNeeded
+	 */
 	private void retrieveImage(String imageNeeded){
-		if(imageNeeded.toLowerCase().startsWith("http://") || imageNeeded.toLowerCase().startsWith("www.")){ //full address
-			outToServer.println("GET " + imageNeeded + " " + port + " " + version);
-			System.out.println("GET " + imageNeeded + " " + port + " " + version);
-		}
-		else{ //relative address
-			outToServer.println("GET " + url.getHost() + imageNeeded + " " + port + " " + version);
-			System.out.println("GET " + imageNeeded + " " + port + " " + version);
-		}
-		outToServer.println("Host: " + url.getHost() + ":" + port);
-		outToServer.println();
 		try{
-			byte[] buffer = new byte[4096];
-		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("src/networks1/receive/image" + fileNumber + ".jpg");
-	    	fileNumber++;
-	    	String thing = "";
-	    	InputStream inFromServer = clientSocket.getInputStream();
-		    while((bytes_read = inFromServer.read(buffer)) != -1){
-		    	System.out.write(buffer, 0, bytes_read);
-		    	toFile.write(buffer, 0, bytes_read);
-		    	thing += new String(buffer,"UTF-8");
-		    }
-		    toFile.close();
-		} catch(Exception fnfe){
-			;
+			URL imageUrl;
+			if(imageNeeded.toLowerCase().startsWith("http://") || imageNeeded.toLowerCase().startsWith("www.")) //full address
+				imageUrl = new URL(imageNeeded);
+			else //relative address
+				imageUrl = new URL(url.getHost() + imageNeeded);
+			System.out.println("Looking for image on following link: " + imageUrl);
+			Client imageClient = new Client(imageUrl, port, version);
+			imageClient.sendMessage("GET",imageUrl, port, version, "");
+			imageClient.closeConnection();
+		}
+		catch(Exception e){
+			System.out.println("Error while retrieving images");
 		}
 	}
-
-//	
-
 }
