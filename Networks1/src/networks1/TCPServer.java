@@ -2,6 +2,7 @@ package networks1;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -42,7 +43,8 @@ class TCPServer implements Runnable {
 	
 	private Socket clientSocket;
 	private BufferedReader inFromClient;
-	private PrintWriter outToClient;
+	private OutputStream outToClient;
+	private PrintWriter pw;
 	
 	/**
 	 * Constructor of a new TCPServer. This server will respond to one client.
@@ -54,11 +56,11 @@ class TCPServer implements Runnable {
 		try{
 			clientSocket = client;
 			inFromClient = new BufferedReader(new InputStreamReader (clientSocket.getInputStream()));
-			outToClient = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+			outToClient = clientSocket.getOutputStream();
+			pw = new PrintWriter(new OutputStreamWriter(outToClient));
 		} catch(Exception e){
 			System.err.println("Error in TCPServer constructor.");
 		}
-		//System.out.println("We created the Server");
 	}
 	
 	private boolean terminated = false;
@@ -75,8 +77,8 @@ class TCPServer implements Runnable {
 				try{
 					String clientSentence = inFromClient.readLine(); 
 					if(clientSentence != null){
-						parse(clientSentence);
 						System.out.println("Parsing " + clientSentence);
+						parse(clientSentence);
 					}
 				} 
 				catch(SocketException e){
@@ -141,7 +143,7 @@ class TCPServer implements Runnable {
 			} else
 				version = 1;
 			String file = commands[1];
-			if(file.equals("/"))
+			if(file.equals("/") || file.isEmpty())
 				file = "/index.html";
 			
 			if(!checkHeader()){
@@ -150,13 +152,28 @@ class TCPServer implements Runnable {
 			} else{
 				File realFile = new File("src/networks1/webpages" + file);
 				try{
-					BufferedReader fileReader = new BufferedReader(new FileReader(realFile));
-					String next = fileReader.readLine();
-					while(next != null){					
-						output = output + next;
-						next = fileReader.readLine();
+					String extension = ".txt";
+					if(file.lastIndexOf(".") != -1)
+						 extension = file.substring(file.lastIndexOf("."));
+					System.out.println(realFile + " " + extension);
+					BufferedReader fileReader;
+					if(extension.equals(".jpg") || extension.equals(".png") || extension.equals(".jpeg")){
+						FileInputStream fis = new FileInputStream(realFile);
+						byte[] buf = new byte[8192];
+						int len = 0; output = "";
+						while ((len = fis.read(buf)) != -1) {
+							outToClient.write(buf);
+						}
+						return;
+					} else {
+							fileReader = new BufferedReader(new FileReader(realFile));
+						String next = fileReader.readLine();
+						while(next != null){					
+							output = output + next;
+							next = fileReader.readLine();
+						}
+						fileReader.close();
 					}
-					fileReader.close();
 				} catch(FileNotFoundException fnfe){
 					error = "404 Not found.";
 					output = "<html><body>Error 404, file not found.<body></html>";
@@ -171,7 +188,6 @@ class TCPServer implements Runnable {
 		toPrint = getHeader(error);
 		toPrint += "\n" + output;
 		System.out.println(error);
-		sendBack(toPrint);
 		if(version == 0)
 			terminated = true;
 	}
@@ -256,13 +272,13 @@ class TCPServer implements Runnable {
 				try{
 					OutputStream toFile = new FileOutputStream("src/networks1/post/post" + postIndex + ".txt");
 					while (((output = inFromClient.readLine()) != null) && inFromClient.ready()) {
-						//System.out.println(output);
 						toFile.write(output.getBytes());
 						toFile.write("\n".getBytes());
 					}
 					toFile.close();
 					error = "200 OK";
 					output = "<html><body>Read post. Thank you.</body></html>";
+					increasePostIndex();
 				} catch(Exception e){
 					System.err.println("Error in post. Cannot write data to system.");
 					error = "500 Internal server error";
@@ -285,9 +301,9 @@ class TCPServer implements Runnable {
 	private void sendBack(String toPrint){
 		if(!toPrint.equals("")){
 			try{
-				outToClient.println(toPrint);
-				outToClient.println();
-				outToClient.flush();
+				pw.println(toPrint);
+				pw.println();
+				pw.flush();
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");
 			}
