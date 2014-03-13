@@ -143,7 +143,7 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
-		PrintWriter outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+		outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	}
 	
 	/**
@@ -219,7 +219,7 @@ public class Client {
 			fileNumber++;
 			if(extension.toLowerCase().equals(".html")){				
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+				OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
 				String output;
 				boolean startWriting = false;
 				while (((output = in.readLine()) != null) && in.ready()) {
