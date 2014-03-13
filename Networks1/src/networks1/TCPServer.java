@@ -185,6 +185,7 @@ class TCPServer implements Runnable {
 		}
 		toPrint = getHeader(error);
 		toPrint += "\n" + output + "\ntest";
+		System.out.println(error);
 		sendBack(toPrint);
 		if(version == 0)
 			terminated = true;
@@ -285,7 +286,7 @@ class TCPServer implements Runnable {
 			}
 		}
 		toPrint = getHeader(error);
-		toPrint += output;
+		toPrint += "\n" + output + "\ntest\ntest";
 		System.out.println(error);
 		sendBack(toPrint);
 		if(version == 0)
