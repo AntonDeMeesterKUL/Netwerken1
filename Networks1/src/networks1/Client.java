@@ -70,6 +70,7 @@ public class Client {
 					Client client = new Client(url, Integer.parseInt(parsed[2]), parsed[3]);
 					clients.put(url.getHost(), client);
 					client.sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
+					client.clientSocket.setKeepAlive(true);
 				} else{ //http/1.0
 					Client client = new Client(url, Integer.parseInt(parsed[2]), parsed[3]);
 					client.sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
@@ -112,9 +113,7 @@ public class Client {
 	}
 	
 	private Socket clientSocket;
-	private PrintWriter outToServer;
 	//private BufferedReader inFromServer;
-	private InputStream inFromServer;
 	private String version;
 	private URL url;
 	private int port;
@@ -139,8 +138,6 @@ public class Client {
 			createConnection(url.getHost(), port);
 			System.out.println("Connected to: " + url.getHost() + " with port: " + port + ".");
 			//inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			inFromServer = clientSocket.getInputStream();
-			outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -193,6 +190,7 @@ public class Client {
 			else
 				message += "\n";
 			System.out.println("Sending: " + message);
+			PrintWriter outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 			outToServer.println(message);
 			outToServer.flush();
 			System.out.println("Flushed the writer.");
@@ -201,26 +199,30 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
-		receiveMessage();
+		receiveMessage(url);
 	}
 	
 	/**
 	 * Receive and print a message given by the server.
 	 */
 	// HEAD localhost/index.html 6789 HTTP/1.0
-	private void receiveMessage(){
+	private void receiveMessage(URL url){
 		System.out.println("Started receiving messages.");
 		//long startedTime = System.currentTimeMillis();
 		try{
 			byte[] buffer = new byte[4096];
 		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("src/networks1/receive/" + fileNumber + ".html");
+		    InputStream inFromServer = clientSocket.getInputStream();
+		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
 	    	fileNumber++;
 	    	String thing = "";
+	    	int first = 0;
 		    while((bytes_read = inFromServer.read(buffer)) != -1){
 		    	System.out.write(buffer, 0, bytes_read);
-		    	toFile.write(buffer, 0, bytes_read);
+		    	if(first!=0)
+		    		toFile.write(buffer, 0, bytes_read);
 		    	thing += new String(buffer,"UTF-8");
+		    	first++;
 		    }
 		    toFile.close();
 			//String modifiedSentence = inFromServer.readLine(); 
@@ -239,7 +241,7 @@ public class Client {
 //					System.out.println("TimeoutConnection: Waited longer than 5s to receive a message. Stopping.");
 //					break;
 //				}
-		    System.out.println(thing);
+		   // System.out.println(thing);
 				//searchForImages(thing);
 				//System.out.println(modifiedSentence);
 				//System.out.println("start recv");
