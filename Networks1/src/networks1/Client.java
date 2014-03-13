@@ -189,7 +189,7 @@ public class Client {
 				message += "\nHost: "+ url.getHost() + ":" + port +"\n";
 			if(command.equals("PUT") || command.equals("POST")) 
 				message += messageBody + "\n";
-			else
+			else if(url.getFile().endsWith(".html"))
 				message += "\n";
 			System.out.println("Sending: " + message);
 			outToServer.println(message);
@@ -236,7 +236,7 @@ public class Client {
 				byte[] buffer = new byte[4096];
 			    int bytes_read;
 			    InputStream inFromServer = clientSocket.getInputStream();
-			    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+			    OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
 		    	fileNumber++;
 		    	String thing = "";
 		    	int first = 0;
@@ -319,7 +319,7 @@ public class Client {
 		try{
 			byte[] buffer = new byte[4096];
 		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\image" + fileNumber + ".jpg");
+		    OutputStream toFile = new FileOutputStream("src/networks1/receive/image" + fileNumber + ".jpg");
 	    	fileNumber++;
 	    	String thing = "";
 	    	InputStream inFromServer = clientSocket.getInputStream();
