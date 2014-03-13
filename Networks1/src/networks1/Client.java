@@ -1,10 +1,8 @@
 package networks1;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -211,19 +209,29 @@ public class Client {
 		//long startedTime = System.currentTimeMillis();
 		try{
 			byte[] buffer = new byte[4096];
-		    int bytes_read;
-		    InputStream inFromServer = clientSocket.getInputStream();
-		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
-	    	fileNumber++;
-	    	String thing = "";
-	    	int first = 0;
-		    while((bytes_read = inFromServer.read(buffer)) != -1){
-		    	System.out.write(buffer, 0, bytes_read);
-		    	if(first!=0)
-		    		toFile.write(buffer, 0, bytes_read);
-		    	thing += new String(buffer,"UTF-8");
-		    	first++;
-		    }
+			int bytes_read;
+			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			OutputStream toFile = new FileOutputStream("D:\\Tester\\Client\\receive" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+			fileNumber++;
+			String thing = "";
+		 	int first = 0;
+			String output;
+			boolean startWriting = false;
+			while (((output = in.readLine()) != null) && in.ready()) {
+				if(output.isEmpty())
+					startWriting = true;
+				searchForImages(output);
+				System.out.println(output);
+				if(startWriting)
+					toFile.write(output.getBytes());
+			}
+//		    while((bytes_read = inFromServer.read(buffer)) != -1){
+//		    	System.out.write(buffer, 0, bytes_read);
+//		    	if(first!=0)
+//		    		toFile.write(buffer, 0, bytes_read);
+//		    	thing += new String(buffer,"UTF-8");
+//		    	first++;
+//		    }
 		    toFile.close();
 			//String modifiedSentence = inFromServer.readLine(); 
 			////long currentTime;
@@ -249,10 +257,10 @@ public class Client {
 				//System.out.println("stop recv");
 			//}
 			System.out.println("Done with receiving code lines.");
-//			if(version.equals("HTTP/1.0")){					
-//				for(String imageNeeded: imagesNeeded)
-//					retrieveImage(imageNeeded);
-//			}
+			if(version.equals("HTTP/1.0")){					
+				for(String imageNeeded: imagesNeeded)
+					retrieveImage(imageNeeded);
+			}
 		} catch(SocketException ses){
 			System.out.println("Socket closed by server. Please try again.");
 		} catch(IOException ioe){
@@ -281,7 +289,8 @@ public class Client {
 		}
 	}
 	
-	private void retrieveImage(String imageNeeded){
+	private void retrieveImage(String imageNeeded) throws IOException{
+		PrintWriter outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 		if(imageNeeded.toLowerCase().startsWith("http://") || imageNeeded.toLowerCase().startsWith("www.")){ //full address
 			outToServer.println("GET " + imageNeeded + " " + port + " " + version);
 			System.out.println("GET " + imageNeeded + " " + port + " " + version);
@@ -293,16 +302,26 @@ public class Client {
 		outToServer.println("Host: " + url.getHost() + ":" + port);
 		outToServer.println();
 		try{
-			byte[] buffer = new byte[4096];
-		    int bytes_read;
-		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\image" + fileNumber + ".jpg");
-	    	fileNumber++;
-	    	String thing = "";
-		    while((bytes_read = inFromServer.read(buffer)) != -1){
-		    	System.out.write(buffer, 0, bytes_read);
-		    	toFile.write(buffer, 0, bytes_read);
-		    	thing += new String(buffer,"UTF-8");
-		    }
+			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			OutputStream toFile = new FileOutputStream("D:\\Tester\\Client\\image" + fileNumber + ".jpg");
+			fileNumber++;
+			String thing = "";
+			int first = 0;
+			String output;
+			while (((output = in.readLine()) != null) && in.ready()) {
+				System.out.println(output);
+				toFile.write(output.getBytes());
+			}
+//			byte[] buffer = new byte[4096];
+//		    int bytes_read;
+//		    OutputStream toFile = new FileOutputStream("D:\\Tester\\Client\\image" + fileNumber + ".jpg");
+//	    	fileNumber++;
+//	    	String thing = "";
+//		    while((bytes_read = inFromServer.read(buffer)) != -1){
+//		    	System.out.write(buffer, 0, bytes_read);
+//		    	toFile.write(buffer, 0, bytes_read);
+//		    	thing += new String(buffer,"UTF-8");
+//		    }
 		    toFile.close();
 		} catch(Exception fnfe){
 			;

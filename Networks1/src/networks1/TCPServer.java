@@ -111,11 +111,12 @@ class TCPServer implements Runnable {
 				version = 1;
 			String file = commands[1];
 			String toPrint = "";
+			String output = "";
 			
 			if(!checkHeader())
 				return;
 			
-			toPrint += getHeader() + "\n";
+			String error = "200 OK";
 			System.out.println(file);
 			File realFile = new File("src/networks1/webpages" + file);
 			System.out.println(realFile);
@@ -123,16 +124,19 @@ class TCPServer implements Runnable {
 				BufferedReader fileReader = new BufferedReader(new FileReader(realFile));
 				String next = fileReader.readLine();
 				while(next != null){					
-					toPrint = toPrint + next + "\n";
+					output = output + next + "\n";
 					next = fileReader.readLine();
 				}
 				fileReader.close();
 			} catch(FileNotFoundException fnfe){
-				toPrint = "Error 404, file not found. Please try another page.";
+				error = "404 Not found.";
+				toPrint = "<html><body>Error 404, file not found.<body></html>";
 			}
 			catch(IOException ioe) {
 				System.err.println("Error in sending messages back. @ get @ TCPServer");
 			}
+			toPrint = getHeader(error);
+			toPrint += output;
 			sendBack(toPrint);
 			if(version == 0)
 				terminated = true;
@@ -155,9 +159,9 @@ class TCPServer implements Runnable {
 				version = 1;
 			String toPrint = "";
 			if(!checkHeader())
-				return;
-			
-			toPrint = getHeader();
+				toPrint = getHeader("400 Bad request");
+			else
+				toPrint = getHeader("200 OK");
 			sendBack(toPrint);
 			if(version == 0)
 				terminated = true;
@@ -185,22 +189,26 @@ class TCPServer implements Runnable {
 				version = 1;
 			String toPrint = "";
 			if(!checkHeader())
-				return;
-			
-			try{
-				OutputStream toFile = new FileOutputStream("src/networks1/post/post" + postIndex + ".txt");
-				//PrintWriter pw = new PrintWriter("src/networks1/post/" + postIndex, "UTF-8");
-				String modifiedSentence = inFromClient.readLine(); 
-				while(modifiedSentence != null){
-					System.out.println(modifiedSentence);
-					toFile.write(modifiedSentence.getBytes());
-					modifiedSentence = inFromClient.readLine();
+				toPrint = getHeader("400 Bad request");
+			else{			
+				try{
+					String output = "";
+					BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+					OutputStream toFile = new FileOutputStream("src/networks1/post/post" + postIndex + ".txt");
+					//PrintWriter pw = new PrintWriter("src/networks1/post/" + postIndex, "UTF-8");
+					while (((output = in.readLine()) != null) && in.ready()) {
+						System.out.println(output);
+						toFile.write(output.getBytes());
+					}
+					toFile.close();
+					toPrint = getHeader("200 OK");
+				} catch(Exception e){
+					System.err.println("Error in post. Cannot write data to system.");
+					toPrint = getHeader("500 Internal server error");
 				}
-				toFile.close();
-			} catch(Exception e){
-				System.err.println("Error in post. Cannot write data to system.");
+				
+				toPrint = "Read post. Thank you.";
 			}
-			toPrint = "Read post. Thank you.";
 			sendBack(toPrint);
 			if(version == 0)
 				terminated = true;
@@ -220,8 +228,8 @@ class TCPServer implements Runnable {
 		}
 	}
 	
-	private String getHeader(){
-		String header =  "HTTP/1." + version + " 200 OK\n";
+	private String getHeader(String error){
+		String header =  "HTTP/1." + version + error + "\n";
 		header += "Server: Localhost\n";
 		header += "Content-language: nl\n";
 		header += "Last-Modified: Wed, 2 Sep 2093 13:37:00 CET\n";
