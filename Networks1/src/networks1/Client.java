@@ -289,8 +289,8 @@ public class Client {
 			else //relative address
 				imageUrl = new URL(url.getHost() + imageNeeded);
 			System.out.println("Looking for image on following link: " + imageUrl);
-			Client imageClient = new Client(imageUrl, port, version);
-			imageClient.sendMessage("GET",imageUrl, port, version, "");
+			Client imageClient = new Client(imageUrl, port, "HTTP/1.0");
+			imageClient.sendMessage("GET",imageUrl, port, "HTTP/1.0", "");
 			imageClient.closeConnection();
 		}
 		catch(Exception e){
