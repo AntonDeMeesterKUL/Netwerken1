@@ -113,6 +113,7 @@ public class Client {
 	}
 	
 	private Socket clientSocket;
+	private PrintWriter outToServer;
 	//private BufferedReader inFromServer;
 	private String version;
 	private URL url;
@@ -142,6 +143,7 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
+		PrintWriter outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 	}
 	
 	/**
@@ -155,7 +157,7 @@ public class Client {
 			clientSocket = new Socket(host, port);
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			System.out.println("Can not create connection");
 		}
 	}
 	
@@ -168,7 +170,7 @@ public class Client {
 			System.out.println("Closing Socket");
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			System.out.println("Error while closing connection");
 		}
 	}
 
@@ -187,8 +189,9 @@ public class Client {
 				message += "\nHost: "+ url.getHost() + ":" + port +"\n";
 			if(command.equals("PUT") || command.equals("POST")) 
 				message += messageBody + "\n";
+			else
+				message += "\n";
 			System.out.println("Sending: " + message);
-			PrintWriter outToServer = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 			outToServer.println(message);
 			outToServer.flush();
 			System.out.println("Flushed the writer.");
@@ -319,6 +322,7 @@ public class Client {
 		    OutputStream toFile = new FileOutputStream("C:\\Users\\Martin\\git\\Netwerken1\\image" + fileNumber + ".jpg");
 	    	fileNumber++;
 	    	String thing = "";
+	    	InputStream inFromServer = clientSocket.getInputStream();
 		    while((bytes_read = inFromServer.read(buffer)) != -1){
 		    	System.out.write(buffer, 0, bytes_read);
 		    	toFile.write(buffer, 0, bytes_read);
