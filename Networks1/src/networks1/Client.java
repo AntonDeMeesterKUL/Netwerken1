@@ -219,7 +219,7 @@ public class Client {
 			fileNumber++;
 			if(extension.toLowerCase().equals(".html")){				
 				BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-				OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+				OutputStream toFile = new FileOutputStream("src/networks1/receive/file" + fileNumber + extension);
 				String output;
 				boolean startWriting = false;
 				while (((output = in.readLine()) != null) && in.ready()) {
