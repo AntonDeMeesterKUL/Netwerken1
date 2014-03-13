@@ -194,6 +194,7 @@ public class Client {
 		catch(Exception e){
 			e.printStackTrace();
 		}
+		imagesNeeded.clear();
 		receiveMessage(url);
 	}
 
@@ -224,8 +225,7 @@ public class Client {
 				}
 				toFile.close();
 				System.out.println("Done with receiving code lines.");
-				if(version.equals("HTTP/1.0"))
-				    for(String image : imagesNeeded)
+				for(String image : imagesNeeded)
 				    	retrieveImage(image);
 				System.out.println("Images retrieved.");
 			}
