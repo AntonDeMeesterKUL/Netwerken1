@@ -212,7 +212,12 @@ public class Client {
 			byte[] buffer = new byte[4096];
 			int bytes_read;
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			OutputStream toFile = new FileOutputStream("src/networks1/receive/receive" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+			int start; String extension = "";
+			if((start = url.getFile().lastIndexOf(".")) != -1)
+				 extension = url.getFile().substring(start);
+			else 
+				extension = ".html";
+			OutputStream toFile = new FileOutputStream("src/networks1/receive/receive" + fileNumber + extension);
 			fileNumber++;
 			String thing = "";
 		 	int first = 0;
