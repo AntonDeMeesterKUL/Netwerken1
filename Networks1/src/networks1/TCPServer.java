@@ -193,12 +193,12 @@ class TCPServer implements Runnable {
 			else{			
 				try{
 					String output = "";
-					BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 					OutputStream toFile = new FileOutputStream("src/networks1/post/post" + postIndex + ".txt");
 					//PrintWriter pw = new PrintWriter("src/networks1/post/" + postIndex, "UTF-8");
-					while (((output = in.readLine()) != null) && in.ready()) {
+					while (((output = inFromClient.readLine()) != null) && inFromClient.ready()) {
 						System.out.println(output);
 						toFile.write(output.getBytes());
+						toFile.write("\n".getBytes());
 					}
 					toFile.close();
 					toPrint = getHeader("200 OK");
@@ -220,7 +220,7 @@ class TCPServer implements Runnable {
 			try{
 				outToClient.println(toPrint);
 				outToClient.flush();
-				System.out.println("Sent: \n" + toPrint);
+				//System.out.println("Sent: \n" + toPrint);
 				//outToClient.close();
 			} catch(Exception e){
 				System.err.println("Error in sendBack @ TCPServer");

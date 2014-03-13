@@ -74,6 +74,7 @@ public class Client {
 					client.sendMessage(parsed[0], url, Integer.parseInt(parsed[2]), parsed[3], messageBody);
 					client.closeConnection();
 				}
+				messageBody = "";
 			}
 		}
 	}
@@ -182,9 +183,9 @@ public class Client {
 		try{
 			String message = command + " " + url.getFile() + " " + version;
 			//if(version.equals("HTTP/1.1")) //mandatory Host-header
-				message += "\nHost: "+ url.getHost() + ":" + port;
+				message += "\nHost: "+ url.getHost() + ":" + port +"\n";
 			if(command.equals("PUT") || command.equals("POST")) 
-				message += messageBody;
+				message += messageBody + "\n";
 			else
 				message += "\n";
 			System.out.println("Sending: " + message);
@@ -211,7 +212,7 @@ public class Client {
 			byte[] buffer = new byte[4096];
 			int bytes_read;
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			OutputStream toFile = new FileOutputStream("D:\\Tester\\Client\\receive" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
+			OutputStream toFile = new FileOutputStream("src/networks1/receive/receive" + fileNumber + url.getFile().substring(url.getFile().lastIndexOf(".")));
 			fileNumber++;
 			String thing = "";
 		 	int first = 0;
@@ -303,7 +304,7 @@ public class Client {
 		outToServer.println();
 		try{
 			BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-			OutputStream toFile = new FileOutputStream("D:\\Tester\\Client\\image" + fileNumber + ".jpg");
+			OutputStream toFile = new FileOutputStream("src/networks1/receive/image" + fileNumber + ".jpg");
 			fileNumber++;
 			String thing = "";
 			int first = 0;
