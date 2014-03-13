@@ -224,7 +224,7 @@ public class Client {
 						toFile.write(output.getBytes());
 				}
 				toFile.close();
-				System.out.println("Done with receiving code lines.");
+				System.out.println("Done with receiving code lines. Looking for images.");
 				for(String image : imagesNeeded)
 				    	retrieveImage(image);
 				System.out.println("Images retrieved.");
@@ -292,8 +292,12 @@ public class Client {
 			Client imageClient = new Client(imageUrl, port, "HTTP/1.0");
 			imageClient.sendMessage("GET",imageUrl, port, "HTTP/1.0", "");
 			imageClient.closeConnection();
+			imageClient.finalize();
 		}
 		catch(Exception e){
+			System.out.println("Error while retrieving images");
+		}
+		catch(Throwable t){
 			System.out.println("Error while retrieving images");
 		}
 	}
